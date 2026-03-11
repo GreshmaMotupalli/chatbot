@@ -1,0 +1,170 @@
+/* ================= MAIN APP CONTAINER ================= */
+.app-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* ================= FLEX LAYOUT ================= */
+.content-container {
+  display: flex;
+  width: 100%;
+  max-width: 1200px;
+  gap: 20px;
+  height: 100%;
+}
+
+/* 🔥 CRITICAL FIX FOR FLEX SHRINK ISSUE */
+.history-container,
+.form-container {
+  min-width: 0;
+}
+
+/* ================= HISTORY SECTION ================= */
+.history-container {
+  flex: 1;
+  max-width: 350px;
+  background-color: #f4f4f4;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.08);
+  overflow-y: auto;
+}
+
+.history-list {
+  margin: 0;
+  padding: 0;
+}
+
+.history-item {
+  margin-bottom: 20px;
+  word-break: break-word;
+}
+
+.history-item hr {
+  border-top: 1px solid #ccc;
+  margin: 10px 0;
+}
+
+/* ================= FORM SECTION ================= */
+.form-container {
+  flex: 2;
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.08);
+  overflow-y: auto;
+}
+
+/* ================= TITLES ================= */
+.section-title {
+  font-size: 22px;
+  margin-bottom: 15px;
+}
+
+/* ================= INPUTS ================= */
+.input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 12px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  box-sizing: border-box;
+}
+
+/* ================= BUTTONS ================= */
+.button {
+  padding: 10px 18px;
+  background-color: #5b6feb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.button:hover {
+  background-color: #4a5edb;
+}
+
+.delete-button {
+  background-color: #ff4d4f;
+}
+
+.delete-button:hover {
+  background-color: #d9363e;
+}
+
+/* ================= RESPONSE BLOCK ================= */
+.response {
+  margin-top: 20px;
+  max-height: 300px;
+  overflow-y: auto;
+  word-break: break-word;
+}
+
+/* ================= DOCUMENT CONTENT FIX ================= */
+.document-content {
+  margin-top: 15px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: #f7f7f7;
+  padding: 12px;
+  border-radius: 6px;
+}
+
+/* 🔥 VERY IMPORTANT: WRAP LONG PDF TEXT */
+.doc-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* ================= CARD LAYOUT ================= */
+.card-container {
+  display: flex;
+  gap: 30px;
+  margin-bottom: 20px;
+}
+
+.card {
+  flex: 1;
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.delete-card {
+  border-left: 5px solid #ff4d4f;
+}
+
+/* ================= MODAL ================= */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  width: 350px;
+  text-align: center;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
