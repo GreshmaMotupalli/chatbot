@@ -79,7 +79,7 @@ function App() {
       await axios.delete(
         `http://127.0.0.1:8000/delete_document/${selectedDocToDelete}`
       );
-      alert("Document deleted successfully!");
+      alert("Docs deleted successfully!");
       fetchDocumentsList();
       setSelectedDocToDelete("");
     } catch (error) {
