@@ -21,10 +21,10 @@ function App() {
   const [fetchDocName, setFetchDocName] = useState("");
   const [documentContent, setDocumentContent] = useState("");
 
-  // Ask Question
+  // Ask Question — a running list so multiple Q&As can stack up
   const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
-  const [snippet, setSnippet] = useState("");
+  const [conversation, setConversation] = useState([]);
+  const [activeHistoryId, setActiveHistoryId] = useState(null);
 
   // Shared / lists
   const [history, setHistory] = useState([]);
@@ -126,18 +126,56 @@ function App() {
   const askQuestion = async () => {
     if (!question.trim()) return;
 
+    const askedQuestion = question.trim();
+    setQuestion("");
+    setActiveHistoryId(null); // asking fresh means we're no longer "viewing" a past item
     setLoadingAsk(true);
     try {
       const response = await axios.post("http://127.0.0.1:8000/ask", {
-        question: question,
+        question: askedQuestion,
       });
-      setAnswer(response.data.answer);
-      setSnippet(response.data.snippet);
+      setConversation((prev) => [
+        ...prev,
+        {
+          question: askedQuestion,
+          answer: response.data.answer,
+          snippet: response.data.snippet,
+        },
+      ]);
+      fetchHistory();
     } catch (error) {
       console.error("Error asking question:", error);
+      setConversation((prev) => [
+        ...prev,
+        {
+          question: askedQuestion,
+          answer: "Something went wrong while fetching the answer.",
+          snippet: "",
+        },
+      ]);
     } finally {
       setLoadingAsk(false);
     }
+  };
+
+  // ================= Open a specific history item =================
+  const openHistoryItem = (item) => {
+    setActiveTab("ask");
+    setActiveHistoryId(item._id || item.question);
+    setConversation([
+      {
+        question: item.question,
+        answer: item.answer,
+        snippet: item.snippet,
+      },
+    ]);
+  };
+
+  // ================= Start a fresh conversation =================
+  const startNewConversation = () => {
+    setConversation([]);
+    setActiveHistoryId(null);
+    setQuestion("");
   };
 
   // ================= Fetch Document (uses its own field) =================
@@ -190,7 +228,13 @@ function App() {
             </div>
           ) : history.length > 0 ? (
             history.map((item, index) => (
-              <div key={index} className="history-item">
+              <div
+                key={item._id || index}
+                className={`history-item ${
+                  activeHistoryId === (item._id || item.question) ? "active" : ""
+                }`}
+                onClick={() => openHistoryItem(item)}
+              >
                 <div className="history-question">{item.question}</div>
                 <div className="history-answer">{item.answer}</div>
               </div>
@@ -327,20 +371,34 @@ function App() {
           {/* ================= ASK QUESTION ================= */}
           {activeTab === "ask" && (
             <section className="card">
-              <h2 className="section-title">Ask Question</h2>
-
-              <div className="ask-row">
-                <input
-                  type="text"
-                  placeholder="Ask something..."
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  className="input"
-                />
-                <button onClick={askQuestion} className="button" disabled={loadingAsk}>
-                  {loadingAsk ? <Spinner /> : "Ask"}
-                </button>
+              <div className="ask-header">
+                <h2 className="section-title">Ask Question</h2>
+                {conversation.length > 0 && (
+                  <button className="link-button" onClick={startNewConversation}>
+                    + New conversation
+                  </button>
+                )}
               </div>
+
+              {conversation.length > 0 && (
+                <div className="conversation-list">
+                  {conversation.map((turn, index) => (
+                    <div key={index} className="conversation-turn">
+                      <div className="turn-question">Q: {turn.question}</div>
+                      <div className="response">
+                        <h3>Answer</h3>
+                        <p>{turn.answer}</p>
+                        {turn.snippet && (
+                          <>
+                            <h4>Snippet</h4>
+                            <p>{turn.snippet}</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {loadingAsk && (
                 <div className="inline-status">
@@ -348,14 +406,19 @@ function App() {
                 </div>
               )}
 
-              {!loadingAsk && answer && (
-                <div className="response">
-                  <h3>Answer</h3>
-                  <p>{answer}</p>
-                  <h4>Snippet</h4>
-                  <p>{snippet}</p>
-                </div>
-              )}
+              <div className="ask-row">
+                <input
+                  type="text"
+                  placeholder="Ask something..."
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && askQuestion()}
+                  className="input"
+                />
+                <button onClick={askQuestion} className="button" disabled={loadingAsk}>
+                  {loadingAsk ? <Spinner /> : "Ask"}
+                </button>
+              </div>
             </section>
           )}
         </div>
