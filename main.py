@@ -1,4 +1,5 @@
 import os
+import re
 import numpy as np
 import requests
 from fastapi import FastAPI, HTTPException, File, UploadFile
@@ -185,8 +186,18 @@ def ask_question(query: QueryInput):
             "similarity_score": float(best_score)
         }
 
-    # Combine context
-    context = "\n\n".join([doc["content"] for _, doc in top_docs])
+    # Combine context — dedupe overlapping chunks so the same
+    # sentences aren't repeated when adjacent chunks both score high
+    seen = set()
+    unique_chunks = []
+    for _, doc in top_docs:
+        content = doc["content"]
+        if content in seen:
+            continue
+        seen.add(content)
+        unique_chunks.append(content)
+
+    context = "\n\n".join(unique_chunks)
 
     prompt = f"""
 You are a strict document-based question answering system.
@@ -219,7 +230,16 @@ Answer:
         )
 
         result = response.json()
-        answer = result.get("response", "").strip()
+        raw_answer = result.get("response", "").strip()
+
+        # DeepSeek-R1 wraps internal reasoning in <think>...</think> —
+        # strip it so only the final answer remains
+        answer = re.sub(r"<think>.*?</think>", "", raw_answer, flags=re.DOTALL).strip()
+
+        if not answer:
+            answer = raw_answer.strip()  # fallback if the whole response was reasoning
+
+        print("RAW OLLAMA RESPONSE:", raw_answer)  # temporary debug line
 
     except Exception as e:
         print("Ollama Error:", e)
