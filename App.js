@@ -2,19 +2,43 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "./styles.css";
 
+const TABS = [
+  { key: "add", label: "Add Document" },
+  { key: "delete", label: "Delete Document" },
+  { key: "fetch", label: "Fetch Document" },
+  { key: "ask", label: "Ask Question" },
+];
+
 function App() {
+  const [activeTab, setActiveTab] = useState("ask");
+
+  // Add Document
   const [docName, setDocName] = useState("");
   const [pdfFile, setPdfFile] = useState(null);
+  const [overwrite, setOverwrite] = useState(false);
+
+  // Fetch Document (own independent field, not tied to Add Document)
+  const [fetchDocName, setFetchDocName] = useState("");
+  const [documentContent, setDocumentContent] = useState("");
+
+  // Ask Question
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [snippet, setSnippet] = useState("");
-  const [documentContent, setDocumentContent] = useState("");
+
+  // Shared / lists
   const [history, setHistory] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [selectedDocToDelete, setSelectedDocToDelete] = useState("");
-  const [overwrite, setOverwrite] = useState(false);
 
-  // ================= Fetch Documents =================
+  // ================= Loading states =================
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [loadingAdd, setLoadingAdd] = useState(false);
+  const [loadingDelete, setLoadingDelete] = useState(false);
+  const [loadingAsk, setLoadingAsk] = useState(false);
+  const [loadingFetchDoc, setLoadingFetchDoc] = useState(false);
+
+  // ================= Fetch Documents (dropdown list) =================
   const fetchDocumentsList = async () => {
     try {
       const response = await axios.get("http://127.0.0.1:8000/get_documents");
@@ -26,22 +50,26 @@ function App() {
 
   // ================= Fetch History =================
   const fetchHistory = async () => {
+    setLoadingHistory(true);
     try {
       const response = await axios.get("http://127.0.0.1:8000/history");
       setHistory(response.data.history || []);
     } catch (error) {
       console.error("Error fetching history:", error);
+    } finally {
+      setLoadingHistory(false);
     }
   };
 
   // ================= Add Document =================
   const addDocument = async () => {
-    try {
-      if (!docName.trim() || !pdfFile) {
-        alert("Please provide document name and PDF file.");
-        return;
-      }
+    if (!docName.trim() || !pdfFile) {
+      alert("Please provide document name and PDF file.");
+      return;
+    }
 
+    setLoadingAdd(true);
+    try {
       const checkResponse = await axios.get(
         `http://127.0.0.1:8000/check_document/${docName.trim()}`
       );
@@ -64,17 +92,22 @@ function App() {
       );
 
       alert("Document stored successfully!");
+      setDocName("");
+      setPdfFile(null);
       setOverwrite(false);
       fetchDocumentsList();
       fetchHistory();
     } catch (error) {
       console.error("Error storing document:", error);
       alert(error.response?.data?.detail || "Error storing document.");
+    } finally {
+      setLoadingAdd(false);
     }
   };
 
   // ================= Delete Document =================
   const deleteDocument = async () => {
+    setLoadingDelete(true);
     try {
       await axios.delete(
         `http://127.0.0.1:8000/delete_document/${selectedDocToDelete}`
@@ -84,11 +117,16 @@ function App() {
       setSelectedDocToDelete("");
     } catch (error) {
       console.error("Error deleting document:", error);
+    } finally {
+      setLoadingDelete(false);
     }
   };
 
   // ================= Ask Question =================
   const askQuestion = async () => {
+    if (!question.trim()) return;
+
+    setLoadingAsk(true);
     try {
       const response = await axios.post("http://127.0.0.1:8000/ask", {
         question: question,
@@ -97,18 +135,28 @@ function App() {
       setSnippet(response.data.snippet);
     } catch (error) {
       console.error("Error asking question:", error);
+    } finally {
+      setLoadingAsk(false);
     }
   };
 
-  // ================= Fetch Document =================
+  // ================= Fetch Document (uses its own field) =================
   const fetchDocument = async () => {
+    if (!fetchDocName.trim()) {
+      alert("Please enter a document name to fetch.");
+      return;
+    }
+
+    setLoadingFetchDoc(true);
     try {
       const response = await axios.get(
-        `http://127.0.0.1:8000/get_document_chunks/${docName.trim()}`
+        `http://127.0.0.1:8000/get_document_chunks/${fetchDocName.trim()}`
       );
       setDocumentContent(response.data.content || "Document not found.");
     } catch (error) {
       setDocumentContent("Error fetching document.");
+    } finally {
+      setLoadingFetchDoc(false);
     }
   };
 
@@ -116,41 +164,66 @@ function App() {
     fetchDocumentsList();
   }, []);
 
+  // Small reusable spinner
+  const Spinner = () => <span className="spinner" />;
+
   return (
-    <div className="app-container">
-      <div className="content-container">
-
-        {/* ================= HISTORY ================= */}
-        <div className="history-container">
-          <h3 className="section-title">History</h3>
-          <button onClick={fetchHistory} className="button">
-            Fetch History
+    <div className="app-shell">
+      {/* ================= SIDEBAR (HISTORY) ================= */}
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <h2>History</h2>
+          <button
+            onClick={fetchHistory}
+            className="icon-button"
+            disabled={loadingHistory}
+            title="Refresh history"
+          >
+            {loadingHistory ? <Spinner /> : "⟳"}
           </button>
-
-          <div className="history-list">
-            {history.length > 0 ? (
-              history.map((item, index) => (
-                <div key={index} className="history-item">
-                  <div><strong>Question:</strong> {item.question}</div>
-                  <hr />
-                  <div><strong>Answer:</strong> {item.answer}</div>
-                  <div><strong>Snippet:</strong> {item.snippet}</div>
-                </div>
-              ))
-            ) : (
-              <div>No history available.</div>
-            )}
-          </div>
         </div>
 
-        {/* ================= FORM ================= */}
-        <div className="form-container">
+        <div className="history-list">
+          {loadingHistory ? (
+            <div className="inline-status">
+              <Spinner /> Loading history...
+            </div>
+          ) : history.length > 0 ? (
+            history.map((item, index) => (
+              <div key={index} className="history-item">
+                <div className="history-question">{item.question}</div>
+                <div className="history-answer">{item.answer}</div>
+              </div>
+            ))
+          ) : (
+            <div className="muted">No history yet.</div>
+          )}
+        </div>
+      </aside>
 
-          {/* ---- ADD + DELETE SIDE BY SIDE ---- */}
-          <div style={{ display: "flex", gap: "20px" }}>
+      {/* ================= MAIN CONTENT ================= */}
+      <main className="main-content">
+        <header className="app-header">
+          <h1>Document Q&amp;A</h1>
+        </header>
 
-            {/* ADD DOCUMENT */}
-            <div style={{ flex: 1 }}>
+        {/* ================= TABS ================= */}
+        <div className="tabs">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              className={`tab-button ${activeTab === tab.key ? "active" : ""}`}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="content-container">
+          {/* ================= ADD DOCUMENT ================= */}
+          {activeTab === "add" && (
+            <section className="card add-document-card">
               <h2 className="section-title">Add Document</h2>
 
               <input
@@ -168,11 +241,10 @@ function App() {
                 className="input"
               />
 
-              {/* ✅ Overwrite checkbox with case-insensitive & trimmed check */}
               {documents.some(
                 (doc) => doc.trim().toLowerCase() === docName.trim().toLowerCase()
               ) && (
-                <label>
+                <label className="checkbox-label">
                   <input
                     type="checkbox"
                     checked={overwrite}
@@ -182,15 +254,15 @@ function App() {
                 </label>
               )}
 
-              <br />
-
-              <button onClick={addDocument} className="button">
-                Store Document
+              <button onClick={addDocument} className="button" disabled={loadingAdd}>
+                {loadingAdd ? <Spinner /> : "Store Document"}
               </button>
-            </div>
+            </section>
+          )}
 
-            {/* DELETE DOCUMENT */}
-            <div style={{ flex: 1 }}>
+          {/* ================= DELETE DOCUMENT ================= */}
+          {activeTab === "delete" && (
+            <section className="card">
               <h2 className="section-title">Delete Document</h2>
 
               <select
@@ -209,58 +281,85 @@ function App() {
               <button
                 onClick={deleteDocument}
                 className="button delete-button"
-                disabled={!selectedDocToDelete}
+                disabled={!selectedDocToDelete || loadingDelete}
               >
-                Delete
+                {loadingDelete ? <Spinner /> : "Delete"}
               </button>
-            </div>
-
-          </div>
-
-          <hr />
-
-          {/* ================= ASK ================= */}
-          <h2 className="section-title">Ask Question</h2>
-
-          <input
-            type="text"
-            placeholder="Ask something..."
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            className="input"
-          />
-
-          <button onClick={askQuestion} className="button">
-            Ask
-          </button>
-
-          {answer && (
-            <div className="response">
-              <h3>Answer:</h3>
-              <p>{answer}</p>
-              <h4>Snippet:</h4>
-              <p>{snippet}</p>
-            </div>
+            </section>
           )}
 
-          <hr />
+          {/* ================= FETCH DOCUMENT ================= */}
+          {activeTab === "fetch" && (
+            <section className="card">
+              <h2 className="section-title">Fetch Document</h2>
 
-          {/* ================= FETCH ================= */}
-          <h2 className="section-title">Fetch Document</h2>
-          <button onClick={fetchDocument} className="button">
-            Fetch Document
-          </button>
+              <input
+                type="text"
+                placeholder="Document Name to fetch"
+                value={fetchDocName}
+                onChange={(e) => setFetchDocName(e.target.value)}
+                className="input"
+              />
 
-          {documentContent && (
-            <div className="document-content">
-              <h3>Document Content:</h3>
-              <div className="doc-text">
-               {documentContent}
+              <button
+                onClick={fetchDocument}
+                className="button"
+                disabled={loadingFetchDoc}
+              >
+                {loadingFetchDoc ? <Spinner /> : "Fetch Document"}
+              </button>
+
+              {loadingFetchDoc && (
+                <div className="inline-status">
+                  <Spinner /> Loading document...
+                </div>
+              )}
+
+              {!loadingFetchDoc && documentContent && (
+                <div className="document-content">
+                  <h3>Document Content</h3>
+                  <div className="doc-text">{documentContent}</div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* ================= ASK QUESTION ================= */}
+          {activeTab === "ask" && (
+            <section className="card">
+              <h2 className="section-title">Ask Question</h2>
+
+              <div className="ask-row">
+                <input
+                  type="text"
+                  placeholder="Ask something..."
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  className="input"
+                />
+                <button onClick={askQuestion} className="button" disabled={loadingAsk}>
+                  {loadingAsk ? <Spinner /> : "Ask"}
+                </button>
               </div>
-            </div>
+
+              {loadingAsk && (
+                <div className="inline-status">
+                  <Spinner /> Fetching answer...
+                </div>
+              )}
+
+              {!loadingAsk && answer && (
+                <div className="response">
+                  <h3>Answer</h3>
+                  <p>{answer}</p>
+                  <h4>Snippet</h4>
+                  <p>{snippet}</p>
+                </div>
+              )}
+            </section>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
