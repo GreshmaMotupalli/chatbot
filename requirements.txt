@@ -1,0 +1,9 @@
+
+fastapi
+uvicorn
+pymongo
+sentence-transformers
+pdfminer.six
+requests
+numpy
+python-multipart
