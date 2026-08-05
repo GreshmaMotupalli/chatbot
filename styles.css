@@ -74,12 +74,18 @@ body {
   background: #2b2b3d;
   border-radius: 8px;
   padding: 10px 12px;
-  cursor: default;
+  cursor: pointer;
   font-size: 13px;
+  border: 1px solid transparent;
 }
 
 .history-item:hover {
   background: #34344a;
+}
+
+.history-item.active {
+  border-color: #2563eb;
+  background: #2f3a5c;
 }
 
 .history-question {
@@ -231,10 +237,55 @@ body {
 .ask-row {
   display: flex;
   gap: 10px;
+  margin-top: 16px;
 }
 
 .ask-row .input {
   margin-bottom: 0;
+}
+
+.ask-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.link-button {
+  background: transparent;
+  border: none;
+  color: #2563eb;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
+.conversation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 55vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.conversation-turn {
+  border-bottom: 1px solid #f0f1f3;
+  padding-bottom: 12px;
+}
+
+.conversation-turn:last-child {
+  border-bottom: none;
+}
+
+.turn-question {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 6px;
+  font-size: 14px;
 }
 
 .checkbox-label {
